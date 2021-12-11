@@ -7,8 +7,7 @@
 #define oops(msg) { perror(msg); exit(1); }
 
 int main(int argc, char* argv[]) {    
-    	int server_sock;
-    	int client_sock;
+    	int server_sock, client_sock, pid;
     
     	struct sockaddr_in server_addr;
     	struct sockaddr_in client_addr;
@@ -35,17 +34,38 @@ int main(int argc, char* argv[]) {
     
    	// main loop
     	while (1) {
-    		// wait for a call
+		// wait for a call
 		client_addr_size = sizeof(client_addr);
     		client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_addr_size);
     		if (client_sock == -1)
         		oops("accept");
-	    	// write a message to client
-		char msg[] = "hello this is server";
-        	write(client_sock, msg, sizeof(msg));
-	    	// close socket
-	    	close(client_sock);
-		return 0;
+		// create a process
+		pid = fork();
+		if (pid < 0) {
+			oops("fork");
+		}
+		else if (pid == 0) {
+			close(server_sock);
+			size_t n;
+			char message[BUFSIZ];
+			bzero(message, BUFSIZ);
+			n = read(client_sock, message, BUFSIZ-1);
+			if (n < 0)
+				oops("reading socket");
+			if (n == 0) {
+	    			close(client_sock);
+				return 0;
+			}
+			printf("From client: %s\n", message);
+			char confirm_msg[] = "I've got your message\n";
+			n = write(client_sock, confirm_msg, sizeof(confirm_msg));
+			if (n < 0)
+				oops("writing socket");
+	    		close(client_sock);
+			return 0;
+		}
+		else
+	    		close(client_sock);
 	}
 }
 
