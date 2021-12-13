@@ -39,23 +39,22 @@ int main(int argc, char* argv[]) {
     		client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_addr_size);
     		if (client_sock == -1)
         		oops("accept");
+		char message[BUFSIZ];
+		size_t n;
+		n = read(client_sock, message, BUFSIZ-1);
+		if (n < 0)
+			oops("reading socket");	
 		// create a process
 		pid = fork();
 		if (pid < 0) {
 			oops("fork");
 		}
-		else if (pid == 0) {
+		else if (pid == 0 && !strcmp(message, "1")) {
 			close(server_sock);
-			size_t n;
-			char message[BUFSIZ];
 			bzero(message, BUFSIZ);
 			n = read(client_sock, message, BUFSIZ-1);
 			if (n < 0)
 				oops("reading socket");
-			if (n == 0) {
-	    			close(client_sock);
-				return 0;
-			}
 			printf("From client: %s\n", message);
 			char confirm_msg[] = "I've got your message\n";
 			n = write(client_sock, confirm_msg, sizeof(confirm_msg));
@@ -63,6 +62,14 @@ int main(int argc, char* argv[]) {
 				oops("writing socket");
 	    		close(client_sock);
 			return 0;
+		}
+		else if (pid == 0 && !strcmp(message, "2")) {
+			char confirm_msg[] = "See all the blocks\n";
+			n = write(client_sock, confirm_msg, sizeof(confirm_msg));
+			if (n < 0)
+				oops("writing socket");
+	    		close(client_sock);
+			return 0;		
 		}
 		else
 	    		close(client_sock);

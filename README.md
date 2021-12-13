@@ -16,7 +16,7 @@
 - Must-included elements
   - [x] Shell script: `server.sh` and `client.sh`
   - [ ] Timer signal
-  - [ ] Keyboard signal
+  - [x] Keyboard signal
   - [x] Use `fork`
   - [ ] Pipe
   - [x] Socket
