@@ -14,7 +14,7 @@ void sig_handler(int sig) {
 int main(int argc, char* argv[]) {
 	int client_sock, choice;
 	struct sockaddr_in server_addr;
-	char message[BUFSIZ], choice_s[BUFSIZ];
+	char message[BUFSIZ], username[BUFSIZ], choice_s[BUFSIZ];
 	
 	signal(SIGINT, sig_handler);
 	signal(SIGTSTP, sig_handler);
@@ -42,15 +42,14 @@ int main(int argc, char* argv[]) {
 		if (connect(client_sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1)
 			oops("connect");
 
-    	
-        	printf("Choose one");
+		printf("Choose one");
         	printf("\n----------");
         	printf("\n 1. Make a block");
         	printf("\n 2. See all blocks");
         	printf("\n 3. Exit");
         	printf("\n----------");
         	printf("\nInput number: ");
-		scanf("%s", choice_s);
+		scanf(" %s", choice_s);
 		if (write(client_sock, choice_s, BUFSIZ-1) < 0)
 			oops("writing socket");
         	choice = atoi(choice_s);

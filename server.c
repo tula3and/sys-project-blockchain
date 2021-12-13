@@ -25,8 +25,8 @@ void create_block(char *prev_hash, int height, char *data, char *user) {
 	strcat(command, buf);
 	strcat(command, " | sha256sum");
 	fp = popen(command, "r");
-	if (fscanf(fp, "%s", curr_hash) == 1)
-		printf("after sha256: %s\n", curr_hash);
+	if (fscanf(fp, "%s", curr_hash) != 1)
+		oops("fscanf", 1);
 	pclose(fp);
 	// make a new block
 	bzero(position, sizeof(position));
@@ -108,6 +108,9 @@ int main(int argc, char* argv[]) {
     		client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_addr_size);
     		if (client_sock == -1)
         		oops("accept", 1);
+		// set username as ip address
+		char username[32];
+		sprintf(username, "%d", client_addr.sin_addr.s_addr);
 		// read option number as a string
 		size_t n;
 		char message[BUFSIZ];
@@ -126,7 +129,18 @@ int main(int argc, char* argv[]) {
 			if (n < 0)
 				oops("reading socket", 1);
 			printf("From client: %s\n", message);
-			char confirm_msg[] = "I've got your message\n";
+			// read recent block info
+			FILE *fp = fopen("./blockchain/blockchain", "r");
+			if (fp == NULL)
+				oops("fp", 1);
+			char prev[65], temp[2], height[32];
+			fgets(prev, 65, fp);
+			fgets(temp, 2, fp);
+			fgets(height, 32, fp);
+			printf("%s,height: %s\n", prev, height);
+			int h = atoi(height);
+			create_block(prev, h, message, username);
+			char confirm_msg[] = "Block is added!\n";
 			n = write(client_sock, confirm_msg, sizeof(confirm_msg));
 			if (n < 0)
 				oops("writing socket", 1);
