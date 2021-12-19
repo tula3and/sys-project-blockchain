@@ -14,7 +14,7 @@ void create_block(char *prev_hash, int height, char *data, char *user) {
 	FILE *fp;
 	// make a buffer for making hash string
 	bzero(buf, sizeof(buf));
-	sprintf(h, "%d", height+1);
+	sprintf(h, "%d", height);
        	strcat(buf, prev_hash);
 	strcat(buf, h);
 	strcat(buf, data);
@@ -46,8 +46,15 @@ void create_block(char *prev_hash, int height, char *data, char *user) {
 	fclose(fp);
 }
 
+void send_message(int s, char *m) {
+	int n = write(s, m, BUFSIZ*5);
+	if (n < 0)
+		oops("writing socket", 1);
+}
+
 int main(int argc, char* argv[]) {    
     	int server_sock, client_sock, pid;
+	FILE *fp;
     
     	struct sockaddr_in server_addr;
     	struct sockaddr_in client_addr;
@@ -98,7 +105,7 @@ int main(int argc, char* argv[]) {
 	if (!checked) {
 		if (mkdir("blockchain", 755) == -1)
 			oops("mkdir", 1);
-		create_block(" ", 0, "genesis block", "unknown");
+		create_block("", 0, "genesis block", "unknown");
 	}
 
 	// main loop
@@ -130,28 +137,80 @@ int main(int argc, char* argv[]) {
 				oops("reading socket", 1);
 			printf("From client: %s\n", message);
 			// read recent block info
-			FILE *fp = fopen("./blockchain/blockchain", "r");
+			fp = fopen("./blockchain/blockchain", "r");
 			if (fp == NULL)
 				oops("fp", 1);
 			char prev[65], temp[2], height[32];
 			fgets(prev, 65, fp);
 			fgets(temp, 2, fp);
 			fgets(height, 32, fp);
-			printf("%s,height: %s\n", prev, height);
 			int h = atoi(height);
-			create_block(prev, h, message, username);
+			create_block(prev, h+1, message, username);
 			char confirm_msg[] = "Block is added!\n";
 			n = write(client_sock, confirm_msg, sizeof(confirm_msg));
 			if (n < 0)
 				oops("writing socket", 1);
+	    		fclose(fp);
 	    		close(client_sock);
 			return 0;
 		}
 		else if (pid == 0 && !strcmp(message, "2")) { // see all the blocks
-			char confirm_msg[] = "See all the blocks\n";
-			n = write(client_sock, confirm_msg, sizeof(confirm_msg));
-			if (n < 0)
-				oops("writing socket", 1);
+			fp = fopen("./blockchain/blockchain", "r");
+			char curr_hash[BUFSIZ];
+			char *folder = "./blockchain/";
+			int curr_height;
+			fscanf(fp, "%s", curr_hash);
+			fscanf(fp, "%d", &curr_height);
+	    		fclose(fp);
+			// make a full path for reading a block
+			char full_path[512];
+			bzero(full_path, sizeof(full_path));
+			strcat(full_path, folder);
+			strcat(full_path, curr_hash);
+			char prev_hash[BUFSIZ], height_s[BUFSIZ], data[BUFSIZ], user[BUFSIZ], whole_data[BUFSIZ*5];
+			int last_point = 0;
+			while ((fp = fopen(full_path, "r")) != NULL) {
+				bzero(whole_data, sizeof(whole_data));
+				fscanf(fp, "%s", curr_hash);
+				if (!last_point && curr_height)
+					fscanf(fp, "%s", prev_hash);
+				fscanf(fp, "%s", height_s);
+				fscanf(fp, " %[^\n]", data);
+				fscanf(fp, "%s", user);
+	    			fclose(fp);
+				if (!strcmp(curr_hash, prev_hash) || !curr_height) {
+					bzero(prev_hash, sizeof(prev_hash));
+					// make a message containing whole block data
+					strcat(whole_data, curr_hash);
+					strcat(whole_data, "|");
+					strcat(whole_data, prev_hash);
+					strcat(whole_data, "|");
+					strcat(whole_data, height_s);
+					strcat(whole_data, "|");
+					strcat(whole_data, data);
+					strcat(whole_data, "|");
+					strcat(whole_data, user);
+					send_message(client_sock, whole_data);
+					break;
+				}
+				bzero(full_path, sizeof(full_path));
+				strcat(full_path, folder);
+				strcat(full_path, prev_hash);
+				// make a message containing whole block data
+				strcat(whole_data, curr_hash);
+				strcat(whole_data, "|");
+				strcat(whole_data, prev_hash);
+				strcat(whole_data, "|");
+				strcat(whole_data, height_s);
+				strcat(whole_data, "|");
+				strcat(whole_data, data);
+				strcat(whole_data, "|");
+				strcat(whole_data, user);
+				send_message(client_sock, whole_data);
+				curr_height = atoi(height_s);
+				if (curr_height == 1)
+					last_point = 1;
+			}
 	    		close(client_sock);
 			return 0;		
 		}

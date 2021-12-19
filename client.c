@@ -12,9 +12,12 @@ void sig_handler(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-	int client_sock, choice;
+	int client_sock, choice, cnt;
 	struct sockaddr_in server_addr;
 	char message[BUFSIZ], choice_s[BUFSIZ];
+	char whole_data[BUFSIZ*5];
+	char *labels[5] = {"Hash", "PrevHash", "Height", "Data", "User"};
+	char *token, *lastB;
 	
 	signal(SIGINT, sig_handler);
 	signal(SIGTSTP, sig_handler);
@@ -69,12 +72,31 @@ int main(int argc, char* argv[]) {
 			printf("Message from server: %s", message);
             		break;
         	case 2:
-			// read a response from the server
-			bzero(message, BUFSIZ);
-			if (read(client_sock, message, BUFSIZ-1) < 0)
-				oops("read");
-			// print the message
-			printf("Message from server: %s", message);
+			// get info of blocks
+			while (1) {
+				printf("##########\n");
+				if (read(client_sock, whole_data, sizeof(whole_data)-1) < 0)
+					oops("read");
+				lastB = strstr(whole_data, "||");
+				if (lastB != NULL)
+					break;
+				token = strtok(whole_data, "|");
+				cnt = 0;
+			        while (token != NULL) {
+					printf("%s: %s\n", labels[cnt++], token);
+					token = strtok(NULL, "|");	
+				}
+			}
+			cnt = 0;
+			token = strtok(whole_data, "|");
+			printf("%s: %s\n", labels[cnt++], token);
+			printf("%s: %s\n", labels[cnt++], "");
+			token = strtok(NULL, "|");	
+			while (token != NULL) {
+				printf("%s: %s\n", labels[cnt++], token);
+				token = strtok(NULL, "|");
+			}
+			printf("##########\n");
             		break;
    	     	case 3:
 			exit(0);
