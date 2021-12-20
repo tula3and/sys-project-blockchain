@@ -3,6 +3,8 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <pwd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #define oops(msg) { perror(msg); exit(1); }
@@ -15,9 +17,10 @@ int main(int argc, char* argv[]) {
 	int client_sock, choice, cnt;
 	struct sockaddr_in server_addr;
 	char message[BUFSIZ], choice_s[BUFSIZ];
+	struct passwd *pwd;
 	char whole_data[BUFSIZ*5];
 	char *labels[5] = {"Hash", "PrevHash", "Height", "Data", "User"};
-	char *token, *lastB;
+	char *username, *token, *lastB;
 	
 	signal(SIGINT, sig_handler);
 	signal(SIGTSTP, sig_handler);
@@ -52,17 +55,47 @@ int main(int argc, char* argv[]) {
         	printf("\n 3. Exit");
         	printf("\n----------");
         	printf("\nInput number: ");
+		bzero(choice_s, BUFSIZ);
 		scanf("%s", choice_s);
+		while (1) {
+			if (strlen(choice_s)) {
+				if ((strlen(choice_s) == 1)) {
+					choice = atoi(choice_s);
+					if (choice > 0 && choice < 4)
+						break;
+				}
+				printf("Invalid input. Only 1, 2, or 3 is accepted.\nInput number: ");
+			}
+			else
+				printf("\nInput has nothing. Input a number.\nInput number: ");
+			bzero(choice_s, BUFSIZ);
+			scanf("%s", choice_s);
+		}
+		printf("**********\n");
+		printf("Option selected\n");
+		printf("**********\n");
 		if (write(client_sock, choice_s, BUFSIZ-1) < 0)
 			oops("writing socket");
-        	choice = atoi(choice_s);
 		switch(choice) {
         	case 1:
 			// write a message to the server
         		printf("Input message: ");
 			bzero(message, BUFSIZ);
 			scanf(" %[^\n]", message);
+			while (strstr(message, "|") || (strlen(message) == 0)) {
+				if (strlen(message))
+					printf("'|' is not allowed. Write again.\nInput message: ");
+				else
+					printf("\nInput has nothing. Write a message.\nInput message: ");
+				bzero(message, BUFSIZ);
+				scanf(" %[^\n]", message);	
+			}
 			if (write(client_sock, message, BUFSIZ-1) < 0)
+				oops("writing socket");
+			// Save username
+			pwd = getpwuid(geteuid());
+			username = pwd->pw_name;
+			if (write(client_sock, username, strlen(username)) < 0)
 				oops("writing socket");
 			// read a response from the server
 			bzero(message, BUFSIZ);
@@ -99,6 +132,7 @@ int main(int argc, char* argv[]) {
 			printf("##########\n");
             		break;
    	     	case 3:
+			printf("Disconnected\n");
 			exit(0);
         	 	break;
 	        default:

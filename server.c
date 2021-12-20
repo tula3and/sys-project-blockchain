@@ -115,12 +115,9 @@ int main(int argc, char* argv[]) {
     		client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_addr_size);
     		if (client_sock == -1)
         		oops("accept", 1);
-		// set username as ip address
-		char username[32];
-		sprintf(username, "%d", client_addr.sin_addr.s_addr);
 		// read option number as a string
 		size_t n;
-		char message[BUFSIZ];
+		char message[BUFSIZ], username[BUFSIZ];
 		n = read(client_sock, message, BUFSIZ-1);
 		if (n < 0)
 			oops("reading socket", 1);	
@@ -135,7 +132,10 @@ int main(int argc, char* argv[]) {
 			n = read(client_sock, message, BUFSIZ-1);
 			if (n < 0)
 				oops("reading socket", 1);
-			printf("From client: %s\n", message);
+			n = read(client_sock, username, BUFSIZ-1);
+			if (n < 0)
+				oops("reading socket", 1);
+			printf("From %s: %s\n", username, message);
 			// read recent block info
 			fp = fopen("./blockchain/blockchain", "r");
 			if (fp == NULL)
