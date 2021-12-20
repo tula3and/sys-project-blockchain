@@ -15,7 +15,7 @@
   - Reference: [blockchain explorer](https://www.blockchain.com/btc/blocks?page=1)
 - Must-included elements
   - [x] Shell script: `server.sh` and `client.sh`
-  - [ ] Timer signal
+  - [x] Timer signal
   - [x] Keyboard signal
   - [x] Use `fork`
   - [ ] Pipe

@@ -3,14 +3,36 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h>
 #include <pwd.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #define oops(msg) { perror(msg); exit(1); }
 
 void sig_handler(int sig) {
 	signal(sig, SIG_IGN);
+}
+
+int set_ticker(int n_msecs) { // milliseconds
+	struct itimerval new_timeset;
+	long n_sec, n_usecs;
+
+	n_sec = n_msecs / 1000; // seconds
+	n_usecs = (n_msecs % 1000) * 1000L; // microseconds
+
+	new_timeset.it_interval.tv_sec = n_sec;
+	new_timeset.it_interval.tv_usec = n_usecs;
+	
+	// store values
+	new_timeset.it_value.tv_sec = n_sec;
+	new_timeset.it_value.tv_usec = n_usecs;
+
+	return setitimer(ITIMER_REAL, &new_timeset, NULL);
+}
+
+int sec;
+void count_time(int sig) {
+	sec++;
 }
 
 int main(int argc, char* argv[]) {
@@ -25,6 +47,12 @@ int main(int argc, char* argv[]) {
 	signal(SIGINT, sig_handler);
 	signal(SIGTSTP, sig_handler);
 	signal(SIGQUIT, sig_handler);
+	signal(SIGALRM, count_time);
+
+	// save for connected time
+	if (set_ticker(1000) == -1) {
+		oops("set_ticker");
+	}
 
 	while(1) {
 		// check the number of arguments
@@ -132,7 +160,7 @@ int main(int argc, char* argv[]) {
 			printf("##########\n");
             		break;
    	     	case 3:
-			printf("Disconnected\n");
+			printf("Disconnected: total access time is %d seconds\n", sec);
 			exit(0);
         	 	break;
 	        default:
