@@ -18,6 +18,6 @@
   - [x] Timer signal
   - [x] Keyboard signal
   - [x] Use `fork`
-  - [ ] Pipe
+  - [x] Pipe
   - [x] Socket
   - [ ] Thread

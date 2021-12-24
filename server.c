@@ -120,7 +120,11 @@ int main(int argc, char* argv[]) {
 		char message[BUFSIZ], username[BUFSIZ];
 		n = read(client_sock, message, BUFSIZ-1);
 		if (n < 0)
-			oops("reading socket", 1);	
+			oops("reading socket", 1);
+		// get a pipe
+		int thepipe[2];
+		if (pipe(thepipe) == -1)
+			oops("pipe", 1);
 		// create a process
 		pid = fork();
 		if (pid < 0) {
@@ -152,9 +156,16 @@ int main(int argc, char* argv[]) {
 				oops("writing socket", 1);
 	    		fclose(fp);
 	    		close(client_sock);
-			return 0;
+			close(thepipe[0]);
+			if (dup2(thepipe[1], 1) == -1)
+				oops("redirect stdout", 4);
+			close(thepipe[1]);
+			execlp("cat", "cat", "./blockchain/blockchain", NULL);
+			oops("cat", 5);
 		}
 		else if (pid == 0 && !strcmp(message, "2")) { // see all the blocks
+			close(thepipe[0]);
+			close(thepipe[1]);
 			fp = fopen("./blockchain/blockchain", "r");
 			char curr_hash[BUFSIZ];
 			char *folder = "./blockchain/";
@@ -214,8 +225,23 @@ int main(int argc, char* argv[]) {
 	    		close(client_sock);
 			return 0;		
 		}
-		else
-	    		close(client_sock);
+		else {
+			int newpid;
+			newpid = fork();
+			if (newpid < 0) {
+				oops("fork", 1);
+			}	
+			else if (newpid == 0 && !strcmp(message, "1")) { 
+				close(thepipe[1]);
+				if (dup2(thepipe[0], 0) == -1)
+					oops("redirect stdout", 3);
+				close(thepipe[0]);
+				execlp("head", "head", "-1", NULL);
+				oops("head", 4);			
+			}
+			else
+				close(client_sock);
+		}
 	}
 }
 
