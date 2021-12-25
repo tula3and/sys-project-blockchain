@@ -202,6 +202,7 @@ int main(int argc, char* argv[]) {
 					strcat(whole_data, "|");
 					strcat(whole_data, user);
 					send_message(client_sock, whole_data);
+					sleep(5);
 					break;
 				}
 				bzero(full_path, sizeof(full_path));
