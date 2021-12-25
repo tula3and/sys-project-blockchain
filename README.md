@@ -1,6 +1,6 @@
 ## Simple blockchain on CLI
 
-- How it works
+- How it works: [entire process on Youtube](https://youtu.be/Jz7zXqCzH_c)
   - Server must be on first with `server.sh` and next one is `client.sh`
   - Client has three options: make a block, see all the blocks, and quit
   - One block is consist of
