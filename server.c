@@ -47,7 +47,7 @@ void create_block(char *prev_hash, int height, char *data, char *user) {
 }
 
 void send_message(int s, char *m) {
-	int n = write(s, m, BUFSIZ*5);
+	int n = send(s, m, BUFSIZ*5, 0);
 	if (n < 0)
 		oops("writing socket", 1);
 }
@@ -202,7 +202,6 @@ int main(int argc, char* argv[]) {
 					strcat(whole_data, "|");
 					strcat(whole_data, user);
 					send_message(client_sock, whole_data);
-					sleep(5);
 					break;
 				}
 				bzero(full_path, sizeof(full_path));

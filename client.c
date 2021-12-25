@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
 			// get info of blocks
 			while (1) {
 				printf("##########\n");
-				if (read(client_sock, whole_data, BUFSIZ*5) < 0)
+				if (recv(client_sock, whole_data, BUFSIZ*5, 0) < 0)
 					oops("read");
 				lastB = strstr(whole_data, "||");
 				if (lastB != NULL)
@@ -147,7 +147,6 @@ int main(int argc, char* argv[]) {
 					printf("%s: %s\n", labels[cnt++], token);
 					token = strtok(NULL, "|");	
 				}
-				sleep(5);
 			}
 			cnt = 0;
 			token = strtok(whole_data, "|");
